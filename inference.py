@@ -10,8 +10,7 @@ import export_to_biigle
 
 
 def model_inference(model_path, data_path, output_path, api, label_tree_id, volume_id):
-
-    sess = load_learner(model_path, cpu=tc.is_available())
+    sess = load_learner(model_path, cpu=not tc.is_available())
     label_names = sess.dls.vocab
 
     delete_first = False
@@ -31,7 +30,8 @@ def model_inference(model_path, data_path, output_path, api, label_tree_id, volu
                 api.delete(f'image-annotations/{ann_id}')
 
     print("Doing inference...")
-    test_files = [os.path.join(data_path, str(row['index']) + "_" + row['filename']) for index, row in original_positions.iterrows()]
+    test_files = [os.path.join(data_path, str(row['index']) + "_" + row['filename']) for index, row in
+                  original_positions.iterrows()]
     test_dl = sess.dls.test_dl(test_files)
     preds, _, decoded = sess.get_preds(dl=test_dl, with_decoded=True)
     inf_list = decoded.tolist()
@@ -40,8 +40,7 @@ def model_inference(model_path, data_path, output_path, api, label_tree_id, volu
     img_list = original_positions['filename'].unique().tolist()
     original_positions['img_id'] = original_positions['filename'].apply(lambda x: img_list.index(x))
     exp_positions = original_positions[["img_id", "index", "pred_label"]]
-    exp_positions.to_csv(os.path.join(output_path, 'predictions.csv'), index = None)
-
+    exp_positions.to_csv(os.path.join(output_path, 'predictions.csv'), index=None)
 
     print("Exporting to Biigle...")
     for image in tqdm(original_positions['filename'].unique().tolist()):  # for each image in the directory
@@ -55,7 +54,6 @@ def model_inference(model_path, data_path, output_path, api, label_tree_id, volu
                 ul = [row['x'], row['y']]
                 lr = [row['x'] + row['w'], row['y'] + row['h']]
                 annotations_xy.append([inference_label, ul[0], ul[1], lr[0], lr[1], 1])
-
 
         # Save to pascalVOC file
         height, width = row['img_h'], row['img_w']
