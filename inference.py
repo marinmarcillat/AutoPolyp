@@ -39,7 +39,8 @@ def model_inference(model_path, data_path, output_path, api, label_tree_id, volu
     original_positions['pred_label'] = original_positions['prediction'].apply(lambda x: label_names[x])
     img_list = original_positions['filename'].unique().tolist()
     original_positions['img_id'] = original_positions['filename'].apply(lambda x: img_list.index(x))
-    exp_positions = original_positions[["img_id", "index", "pred_label"]]
+    original_positions.rename(columns={"index": "polyp_index"})
+    exp_positions = original_positions[["img_id", 'filename', "polyp_index", "pred_label"]]
     exp_positions.to_csv(os.path.join(output_path, 'predictions.csv'), index=None)
 
     print("Exporting to Biigle...")
