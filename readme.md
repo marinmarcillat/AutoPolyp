@@ -6,6 +6,6 @@ To launch, open anaconda prompt and run following commands
 
     conda activate AutoPolyp 
 
-    cd /path/to/AutoPolyp  # Navigate to your Autopolyp directory, for example: cd D:\Autopolip\AutoPolyp
+    cd /path/to/AutoPolyp  # Navigate to your Autopolyp directory, for example: cd D:\AutoPolyp
     jupyter lab # Launch the jupyterlab interface
 
