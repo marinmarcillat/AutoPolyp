@@ -48,7 +48,7 @@ def model_inference(model_path, data_path, output_path, api, label_tree_id, volu
         vignettes = original_positions[original_positions['filename'] == image]
         annotations_xy = []
         for index, row in vignettes.iterrows():
-            file_path = os.path.join(data_path, str(row['index']) + "_" + row['filename'])
+            file_path = os.path.join(data_path, str(row["polyp_index"]) + "_" + row['filename'])
             if os.path.isfile(file_path) and imghdr.what(file_path) == "jpeg":
                 id_pred = test_files.index(file_path)
                 inference_label = label_names[inf_list[id_pred]]
