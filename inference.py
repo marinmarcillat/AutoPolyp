@@ -9,7 +9,7 @@ import utils_pascalVOC
 import export_to_biigle
 
 
-def model_inference(model_path, data_path, output_path, api, label_tree_id, volume_id):
+def model_inference(model_path, data_path, output_path, api, label_tree_id, volume_id, exp_Biigle = True):
     sess = load_learner(model_path, cpu=not tc.is_available())
     label_names = sess.dls.vocab
 
@@ -43,25 +43,26 @@ def model_inference(model_path, data_path, output_path, api, label_tree_id, volu
     exp_positions = original_positions[["img_id", 'filename', "polyp_index", "pred_label"]]
     exp_positions.to_csv(os.path.join(output_path, 'predictions.csv'), index=None)
 
-    print("Exporting to Biigle...")
-    for image in tqdm(original_positions['filename'].unique().tolist()):  # for each image in the directory
-        vignettes = original_positions[original_positions['filename'] == image]
-        annotations_xy = []
-        for index, row in vignettes.iterrows():
-            file_path = os.path.join(data_path, str(row["polyp_index"]) + "_" + row['filename'])
-            if os.path.isfile(file_path) and imghdr.what(file_path) == "jpeg":
-                id_pred = test_files.index(file_path)
-                inference_label = label_names[inf_list[id_pred]]
-                ul = [row['x'], row['y']]
-                lr = [row['x'] + row['w'], row['y'] + row['h']]
-                annotations_xy.append([inference_label, ul[0], ul[1], lr[0], lr[1], 1])
+    if exp_Biigle:
+        print("Exporting to Biigle...")
+        for image in tqdm(original_positions['filename'].unique().tolist()):  # for each image in the directory
+            vignettes = original_positions[original_positions['filename'] == image]
+            annotations_xy = []
+            for index, row in vignettes.iterrows():
+                file_path = os.path.join(data_path, str(row["polyp_index"]) + "_" + row['filename'])
+                if os.path.isfile(file_path) and imghdr.what(file_path) == "jpeg":
+                    id_pred = test_files.index(file_path)
+                    inference_label = label_names[inf_list[id_pred]]
+                    ul = [row['x'], row['y']]
+                    lr = [row['x'] + row['w'], row['y'] + row['h']]
+                    annotations_xy.append([inference_label, ul[0], ul[1], lr[0], lr[1], 1])
 
-        # Save to pascalVOC file
-        height, width = row['img_h'], row['img_w']
-        annotations_xy_pd = pd.DataFrame(annotations_xy, columns=['name', 'xmin', 'ymin', 'xmax', 'ymax', 'confidence'])
-        pascalVOC_path = utils_pascalVOC.export_annotations_pascal(image, annotations_xy_pd, width, height, data_path)
+            # Save to pascalVOC file
+            height, width = row['img_h'], row['img_w']
+            annotations_xy_pd = pd.DataFrame(annotations_xy, columns=['name', 'xmin', 'ymin', 'xmax', 'ymax', 'confidence'])
+            pascalVOC_path = utils_pascalVOC.export_annotations_pascal(image, annotations_xy_pd, width, height, data_path)
 
-        export_to_biigle.pascalVOC_to_biigle(image, pascalVOC_path, label_idx, images_idx, 'Rectangle', api)
+            export_to_biigle.pascalVOC_to_biigle(image, pascalVOC_path, label_idx, images_idx, 'Rectangle', api)
 
 
 if __name__ == "__main__":
