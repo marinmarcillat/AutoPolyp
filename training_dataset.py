@@ -4,6 +4,7 @@ import imghdr
 import cv2
 import image_utils as iu
 import utils_polyps as up
+import pandas as pd
 
 
 def crop_all_images_training(images_path, annotations, labels_name, train_path):
@@ -25,10 +26,23 @@ def crop_all_images_training(images_path, annotations, labels_name, train_path):
 
                     label = row['label_name']
                     label_dir = os.path.join(train_path, label)
-                    isExist = os.path.exists(label_dir)
-                    if not isExist:
+                    if not os.path.exists(label_dir):
                         os.makedirs(label_dir)
 
                     exp_path = os.path.join(label_dir, f"{str(index)}_{file}")
                     cv2.imwrite(exp_path, cropped_img)
 
+
+if __name__ == "__main__":
+    export_dir = r""
+    labels_name = ["", ""]
+
+    training_volumes = {
+        "volume_name": {
+            "image_path": r"image_path",
+            "report_path": r"report_path"},
+
+    }
+    for config in training_volumes.values():
+        annotations = pd.read_csv(config["report_path"])
+        crop_all_images_training(config["image_path"], annotations, labels_name, export_dir)

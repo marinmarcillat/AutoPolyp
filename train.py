@@ -2,11 +2,15 @@ from fastai.vision.all import *
 import os
 
 class TrainingSession:
-    def __init__(self, data_path):
+    def __init__(self, data_path, model_type = 101):
+        if model_type == 101:
+            model = resnet101
+        elif model_type == 34:
+            model = resnet34
         self.data_path = data_path
         self.dls = ImageDataLoaders.from_folder(self.data_path, valid_pct=0.1, item_tfms=Resize(64), batch_tfms=aug_transforms(size=64),
                                            num_workers=0)
-        self.learn = vision_learner(self.dls, resnet34, metrics=error_rate)
+        self.learn = vision_learner(self.dls, model, metrics=error_rate)
 
     def find_lr(self):
         self.learn.lr_find()
@@ -26,4 +30,5 @@ class TrainingSession:
         self.learn = load_learner(os.path.join(model_dir, 'model_export.pkl'), cpu=False)
 
 
+_
 

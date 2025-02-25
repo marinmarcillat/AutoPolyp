@@ -78,17 +78,19 @@ def get_polyps_coords(images_path, annotations, h_matrixs, labels_name, output_p
                     w = lr_trsf[0] - ul_trsf[0]
                     y = ul_trsf[1]
                     h = lr_trsf[1] - ul_trsf[1]
-                    polyp_coords.append([file, ann['label_name'], x, y, w, h])
+                    polyp_coords.append([file, ann['label_name'], x, y, w, h, ann['shape_name']])
 
-    polyp_coords_pd = pd.DataFrame(polyp_coords, columns=['filename', 'label', 'x', 'y', 'w', 'h'])
+    polyp_coords_pd = pd.DataFrame(polyp_coords, columns=['filename', 'label', 'x', 'y', 'w', 'h', 'shape_name'])
     polyp_coords_path = os.path.join(output_path, 'polyps_coords.csv')
     polyp_coords_pd.to_csv(polyp_coords_path, index=False)
     return polyp_coords_pd
 
-def get_ref_polyps(polyps_positions, images_ref, label_names, output_path):
+def get_ref_polyps(polyps_positions, images_ref, label_names, output_path, round_if_empty=False):
     polyps_ref = []
     exp_polyps_ref = []
     references = polyps_positions[polyps_positions['filename'].isin(images_ref)][polyps_positions['label'].isin(label_names)]
+    if len(references) == 0 and round_if_empty:
+        references = polyps_positions[polyps_positions['filename'].isin(images_ref)][polyps_positions['shape_name'] == 'Circle']
     for index, ann_ref in tqdm(references.iterrows()):
         center = [ann_ref['x'] + ann_ref['w'] / 2, ann_ref['y'] + ann_ref['h'] / 2]
         radius = ann_ref['w'] / 2
