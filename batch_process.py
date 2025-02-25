@@ -54,8 +54,8 @@ def volume_inference(config, volume):
     else:
         polyp_ref = pd.read_csv(polyp_ref_path)
 
-    if len(polyp_ref) == 0:
-        print("No ref polyps found")
+    if len(polyp_ref) <= 3:
+        print("No or too few ref polyps found")
         return 0
 
     iu.crop_all_images(config[volume]['images_path'], polyp_ref, h_matrixs, vign_path)
