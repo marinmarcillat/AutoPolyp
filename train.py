@@ -30,5 +30,11 @@ class TrainingSession:
         self.learn = load_learner(os.path.join(model_dir, 'model_export.pkl'), cpu=False)
 
 
-_
+if __name__ == '__main__':
+    model_path = r""
+    train_path = r""
 
+    training_session = TrainingSession(train_path, model_type=101)
+    training_session.find_lr()
+    training_session.launch_train(model_path, epochs=100, lr=2e-3)
+    training_session.plot_matrixs()
