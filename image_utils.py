@@ -6,6 +6,7 @@ import ast
 import numpy as np
 import cv2 as cv
 import pandas as pd
+import fiftyone as fo
 
 from feature_matching import homographic_trsf as ht
 
@@ -46,7 +47,7 @@ def reverse_trsf(row, inv_h):
     return [int(ori_ul[0]), int(ori_ul[1]), int(w), int(h)]
 
 
-def crop_all_images(images_path, polyp_ref, h_matrixs, output_path):
+def crop_all_images(images_path, polyp_ref, h_matrixs, output_path, dataset):
     """
     Crop all images in image path according to a polyp ref file. Stores the vignettes and the ori_porsition file in the output_path
     :param images_path:
@@ -56,7 +57,8 @@ def crop_all_images(images_path, polyp_ref, h_matrixs, output_path):
     :return:
     """
     original_positions = []
-    for file in tqdm(sorted(os.listdir(images_path))):  # for each image in the directory
+    samples = []
+    for image_id, file in tqdm(enumerate(sorted(os.listdir(images_path)))):  # for each image in the directory
         jpg_path = os.path.join(images_path, file)
         if os.path.isfile(jpg_path) and imghdr.what(jpg_path) == "jpeg":
             h_matrix_img = h_matrixs.loc[h_matrixs['filename'] == file]
@@ -77,9 +79,43 @@ def crop_all_images(images_path, polyp_ref, h_matrixs, output_path):
                     exp_path = os.path.join(output_path, f"{str(index)}_" + file)
                     cv.imwrite(exp_path, cropped_img)
 
-    ori_pos_pd = pd.DataFrame(original_positions, columns = ['filename', 'index', 'x', 'y', 'w', 'h', 'img_w', 'img_h'])
-    ori_pos_pd_path = os.path.join(output_path, 'ori_positions.csv')
-    ori_pos_pd.to_csv(ori_pos_pd_path, index = None)
+                    sample = fo.Sample(filepath=exp_path)
+                    sample["polyp_ref_index"] = index
+                    sample["image_id"] = image_id
+                    sample["original_image"] = file
+                    sample["x"] = valid_coords[0]
+                    sample["y"] = valid_coords[1]
+                    sample["w"] = valid_coords[2]
+                    sample["h"] = valid_coords[3]
+                    samples.append(sample)
+
+    dataset.add_samples(samples)
+
+
+def crop_all_images_training(images_path, annotations, labels_name, train_path):
+    for file in tqdm(sorted(os.listdir(images_path))):  # for each image in the directory
+        jpg_path = os.path.join(images_path, file)
+        if os.path.isfile(jpg_path) and imghdr.what(jpg_path) == "jpeg":
+            ann_img = annotations.loc[annotations['filename'] == file].loc[
+                annotations['shape_name'].isin(["Circle", "Rectangle"])].loc[
+                annotations['label_name'].isin(labels_name)]
+            img_input = cv2.imread(jpg_path, cv2.IMREAD_UNCHANGED)
+            img_w, img_h = img_input.shape[1], img_input.shape[0]
+
+            for index, row in ann_img.iterrows():
+                x, y, w, h = up.extract_annotation_coordinates(row)
+                coords = [int(x), int(y), int(w), int(h)]
+                valid_coords = iu.check_validity(coords, img_w, img_h)
+                if valid_coords is not None:
+                    cropped_img = iu.crop_image(img_input, valid_coords)
+
+                    label = row['label_name']
+                    label_dir = os.path.join(train_path, label)
+                    if not os.path.exists(label_dir):
+                        os.makedirs(label_dir)
+
+                    exp_path = os.path.join(label_dir, f"{str(index)}_{file}")
+                    cv2.imwrite(exp_path, cropped_img)
 
 if __name__ == "__main__":
     images_path = r'W:\images\MARLEY_2021'
