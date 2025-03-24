@@ -1,6 +1,6 @@
 To install the conda env, open anaconda prompt and run following command
 
-    mamba create -n AutoPolyp  -c pytorch -c nvidia -c fastai -c anaconda -c conda-forge python=3.9 fastai jinja2 requests pandas tqdm opencv jupyterlab fiftyone
+    mamba create -n AutoPolyp  -c pytorch -c nvidia -c fastai -c conda-forge python=3.9 fastai jinja2 requests pandas tqdm opencv jupyterlab fiftyone numpy==1.26.4'
     pip install opencv-contrib-python
 
 To add support for gpu, check your cuda version with nvidia-smi command (cuda >= 11.6 required) and run following command
