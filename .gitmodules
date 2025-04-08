@@ -1,0 +1,3 @@
+[submodule "annotation_conversion_toolbox"]
+	path = annotation_conversion_toolbox
+	url = https://gitlab.ifremer.fr/image/annotation_conversion_toolbox.git

@@ -125,8 +125,8 @@ def crop_all_images_training(images_path, annotations, labels_name, train_path):
 if __name__ == "__main__":
     images_path = r'W:\images\MARLEY_2021'
     output_path = r'D:\ARDECO\MARLEY\temp'
-    output_h_matrix_path = os.path.join('D:\ARDECO\MARLEY', 'h_matrixs.txt')
-    polyp_ref_path = os.path.join('D:\ARDECO\MARLEY', 'polyp_ref_updated.csv')
+    output_h_matrix_path = os.path.join(r"D:\ARDECO\MARLEY", 'h_matrixs.txt')
+    polyp_ref_path = os.path.join(r"D:\ARDECO\MARLEY", 'polyp_ref_updated.csv')
 
     polyp_ref = pd.read_csv(polyp_ref_path)
     h_matrixs = pd.read_csv(output_h_matrix_path)
