@@ -10,7 +10,6 @@ import fiftyone as fo
 
 from feature_matching import homographic_trsf as ht
 
-
 def check_validity(coords, img_w, img_h):
     x, y, w, h = coords
     if w <= 0 or h <= 0:
@@ -60,34 +59,40 @@ def crop_all_images(images_path, polyp_ref, h_matrixs, output_path, dataset):
     samples = []
     for image_id, file in tqdm(enumerate(sorted(os.listdir(images_path)))):  # for each image in the directory
         jpg_path = os.path.join(images_path, file)
-        if os.path.isfile(jpg_path) and imghdr.what(jpg_path) == "jpeg":
-            h_matrix_img = h_matrixs.loc[h_matrixs['filename'] == file]
-            M = np.array(ast.literal_eval(h_matrix_img['matrix'].to_list()[0]))
-            if len(M) == 0:
-                M = np.eye(3)  # No transformation
+        if not os.path.isfile(jpg_path) or imghdr.what(jpg_path) != "jpeg":
+            continue
+        h_matrix_img = h_matrixs.loc[h_matrixs['filename'] == file]
+        if len(h_matrix_img)==0:
+            print(f"Missing h matrix, ignoring: {file}")
+            continue
+        M = np.array(ast.literal_eval(h_matrix_img['matrix'].to_list()[0]))
+        if len(M) == 0:
+            M = np.eye(3)  # No transformation
 
-            img_input = cv.imread(jpg_path, cv.IMREAD_UNCHANGED)
-            img_w, img_h = img_input.shape[1], img_input.shape[0]
-            val, inv_h = cv2.invert(M)
+        img_input = cv.imread(jpg_path, cv.IMREAD_UNCHANGED)
+        img_w, img_h = img_input.shape[1], img_input.shape[0]
+        val, inv_h = cv2.invert(M)
 
-            for index, row in polyp_ref.iterrows():
-                coords = reverse_trsf(row, inv_h)
-                valid_coords = check_validity(coords, img_w, img_h)
-                if valid_coords is not None:
-                    cropped_img = crop_image(img_input, valid_coords)
-                    original_positions.append([file, index, valid_coords[0], valid_coords[1], valid_coords[2], valid_coords[3], img_w, img_h])
-                    exp_path = os.path.join(output_path, f"{str(index)}_" + file)
-                    cv.imwrite(exp_path, cropped_img)
+        for index, row in polyp_ref.iterrows():
+            coords = reverse_trsf(row, inv_h)
+            valid_coords = check_validity(coords, img_w, img_h)
+            if valid_coords is not None:
+                cropped_img = crop_image(img_input, valid_coords)
+                original_positions.append([file, index, valid_coords[0], valid_coords[1], valid_coords[2], valid_coords[3], img_w, img_h])
+                exp_path = os.path.join(output_path, f"{str(index)}_" + file)
+                cv.imwrite(exp_path, cropped_img)
 
-                    sample = fo.Sample(filepath=exp_path)
-                    sample["polyp_ref_index"] = index
-                    sample["image_id"] = image_id
-                    sample["original_image"] = file
-                    sample["x"] = valid_coords[0]
-                    sample["y"] = valid_coords[1]
-                    sample["w"] = valid_coords[2]
-                    sample["h"] = valid_coords[3]
-                    samples.append(sample)
+                sample = fo.Sample(filepath=exp_path)
+                sample["polyp_ref_index"] = index
+                sample["image_id"] = image_id
+                sample["original_image"] = file
+                sample["x"] = valid_coords[0]
+                sample["y"] = valid_coords[1]
+                sample["w"] = valid_coords[2]
+                sample["h"] = valid_coords[3]
+                samples.append(sample)
+            else:
+                print("Invalid coords")
 
     dataset.add_samples(samples)
 

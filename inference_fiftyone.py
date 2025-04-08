@@ -86,7 +86,7 @@ def fiftyone_inference(config, volume, model_path, debug = True):
 
     iu.crop_all_images(images_path, polyp_ref, h_matrixs, vign_path, dataset)
 
-    learner = load_learner(model_path, cpu=not tc.is_available())
+    learner = load_learner(model_path, cpu=1)
 
     fou.do_inference(learner, dataset)
 
