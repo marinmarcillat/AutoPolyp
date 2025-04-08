@@ -1,8 +1,8 @@
 from inference_fiftyone import fiftyone_inference
+from fiftyone_utils import delete_all_datasets
 import configparser
 import fiftyone as fo
-from fiftyone import ViewField as F
-from annotation_conversion_toolbox import biigle_dataset
+
 
 biigle_export = True
 
@@ -14,29 +14,11 @@ volume = 'A2S9'
 
 model_path = r"D:\ARDECO_Elena\model\ATM\model_export.pkl"
 
-biigle_volume_id = 0
-label_tree_id = 0
-biigle_dir = r"Z:\images\test"
-
 config = configparser.ConfigParser()
 config.read(config_path)
 
-dataset = fiftyone_inference(config, volume, model_path)
-
-
-if biigle_export:
-
-
-    exporter = biigle_dataset.BiigleDatasetExporter(api=api,
-                                                    volume_id=volume_id,
-                                                    label_tree_id=label_tree_id,
-                                                    biigle_image_dir=biigle_dir
-                                                    )
-
-    fields = to_train_dataset.get_field_schema()
-    if "classifications" in fields:
-        to_train_dataset.export(dataset_exporter=exporter, label_field="classifications")
-
+delete_all_datasets()
+dataset = fiftyone_inference(config, volume, model_path, biigle_export = biigle_export)
 
 if type(dataset) == fo.Dataset:
     session = fo.launch_app(dataset)

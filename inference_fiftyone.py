@@ -2,6 +2,8 @@ import feature_matching as fm
 import utils_polyps as up
 import image_utils as iu
 import fiftyone_utils as fou
+from biigle import Api
+from annotation_conversion_toolbox import biigle_dataset
 
 import fiftyone as fo
 from fastai.vision.all import *
@@ -10,6 +12,7 @@ import os
 import json
 import pandas as pd
 import configparser
+from shutil import copy2
 
 
 def export_dataset(dataset, output_path):
@@ -20,12 +23,14 @@ def export_dataset(dataset, output_path):
         fields=["polyp_ref_index", "image_id", "predictions.label", "predictions.confidence", "original_image"],
     )
 
-def fiftyone_inference(config, volume, model_path, debug = True):
+def fiftyone_inference(config, volume, model_path, debug = True, biigle_export = False):
     
     if type(volume) == list:  # Recursive call
-        for v in volume:
-            fiftyone_inference(config, v, model_path, debug = False)
-        return 1
+        return [
+            fiftyone_inference(config, v, model_path, debug=debug)
+            for v in volume
+        ]
+
 
     print(f"Preparing inference for volume {volume}")
 
@@ -46,6 +51,21 @@ def fiftyone_inference(config, volume, model_path, debug = True):
         print("missing required fields in config file")
         print("required fields are: img_ref_polyps, labels_name_ref, labels_name_classification, output_path, report_path, images_path, img_ref_pos")
         return 0
+
+    if biigle_export:
+        try:
+            biigle_project_dir = config.get('DEFAULT', 'biigle_project_dir')
+            project_id = config.get('DEFAULT', 'biigle_project_id')
+            label_tree_id = config.get('DEFAULT', 'label_tree_id')
+            nb_sampling = config.getint('DEFAULT', 'nb_sampling')
+            biigle_api_token = config.get('DEFAULT', 'token')
+            biigle_api_email = config.get('DEFAULT', 'email')
+            api = Api(biigle_api_email, biigle_api_token)
+        except configparser.NoOptionError:
+            print("missing required fields in config file, default section, for biigle export")
+            print(
+                "required fields are: biigle_project_dir, biigle_project_id, biigle_project_id, nb_sampling, token, email")
+            return 0
 
     vign_path = os.path.join(output_path, 'vign')
 
@@ -81,7 +101,6 @@ def fiftyone_inference(config, volume, model_path, debug = True):
         print(f"No or too few ({len(polyp_ref)}) ref polyps found")
         return 0
 
-    fou.delete_all_datasets()
     dataset = fo.Dataset(f"{volume}_dataset")
 
     iu.crop_all_images(images_path, polyp_ref, h_matrixs, vign_path, dataset)
@@ -91,8 +110,43 @@ def fiftyone_inference(config, volume, model_path, debug = True):
     fou.do_inference(learner, dataset)
 
     inference_path = os.path.join(output_path, 'predictions')
-    os.makedirs(inference_path) if not os.path.exists(inference_path) else None
+    None if os.path.exists(inference_path) else os.makedirs(inference_path)
     export_dataset(dataset, inference_path)
+
+    if biigle_export:
+        to_check_dataset = dataset.take(nb_sampling)
+
+        volume_dir = os.path.join(biigle_project_dir, volume)
+        if not os.path.exists(volume_dir):
+            os.makedirs(volume_dir)
+
+        imgs = []
+        for sample in to_check_dataset.iter_samples(progress=True):
+            fp = sample["filepath"]
+            file_name = os.path.basename(fp)
+            dest = os.path.join(volume_dir, file_name)
+            if not os.path.exists(dest):
+                copy2(fp, dest)
+            imgs.append(file_name)
+
+        payload = {
+            "name": f"{volume}_inference",
+            "url": f"local://{volume_dir[3:]}",
+            "media_type": "image",
+            "files": imgs,
+        }
+
+        result = api.post(f"projects/{project_id}/volumes", json=payload)
+
+        exporter = biigle_dataset.BiigleDatasetExporter(api=api,
+                                                        volume_id=result["id"],
+                                                        label_tree_id=label_tree_id,
+                                                        biigle_image_dir=volume_dir
+                                                        )
+
+        fields = to_check_dataset.get_field_schema()
+        if "classifications" in fields:
+            to_check_dataset.export(dataset_exporter=exporter, label_field="classifications")
 
     return dataset if debug else 1
 
