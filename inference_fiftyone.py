@@ -20,7 +20,7 @@ def export_dataset(dataset, output_path):
         export_dir=output_path,
         dataset_type=fo.types.CSVDataset,
         export_media = False,
-        fields=["polyp_ref_index", "image_id", "predictions.label", "predictions.confidence", "original_image"],
+        fields=["polyp_ref_index", "image_id", "classifications.label", "classifications.confidence", "original_image"],
     )
 
 def fiftyone_inference(config, volume, model_path, debug = True, biigle_export = False):
@@ -139,7 +139,7 @@ def fiftyone_inference(config, volume, model_path, debug = True, biigle_export =
         result = api.post(f"projects/{project_id}/volumes", json=payload)
 
         exporter = biigle_dataset.BiigleDatasetExporter(api=api,
-                                                        volume_id=result["id"],
+                                                        volume_id=result.json()["id"],
                                                         label_tree_id=label_tree_id,
                                                         biigle_image_dir=volume_dir
                                                         )

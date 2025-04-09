@@ -40,12 +40,13 @@ def do_inference(learner, dataset):
     preds = preds.numpy()
 
     # Save predictions to FiftyOne dataset
-    with fo.ProgressBar() as pb:
+    with (fo.ProgressBar() as pb):
         for sample, scores in zip(pb(dataset), preds):
             target = np.argmax(scores)
-            sample["predictions"] = fo.Classification(
+            sample["classifications"] = fo.Classifications(classifications=
+            [fo.Classification(
                 label=classes[target],
                 confidence=scores[target],
                 logits=np.log(scores),
-            )
+            )])
             sample.save()
