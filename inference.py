@@ -12,13 +12,14 @@ config_path = r"D:\ARDECO_Elena\config\config_ATM -2.ini"
 volume = 'A2S9'
 #volume = ['A3S3', 'A2S3', 'A1S3', 'A3S2', 'A2S2', 'A1S2', 'A3S1', 'A2S1', 'A1S1']
 
+model = "yolo"  # or model = "resnet"
 model_path = r"D:\ARDECO_Elena\model\ATM\model_export.pkl"
 
 config = configparser.ConfigParser()
 config.read(config_path)
 
 delete_all_datasets()
-dataset = fiftyone_inference(config, volume, model_path, biigle_export = biigle_export)
+dataset = fiftyone_inference(config, volume, model_path, biigle_export = biigle_export, model = model)
 
 if type(dataset) == fo.Dataset:
     session = fo.launch_app(dataset)

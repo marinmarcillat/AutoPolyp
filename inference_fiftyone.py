@@ -13,6 +13,7 @@ import json
 import pandas as pd
 import configparser
 from shutil import copy2
+from ultralytics import YOLO
 
 
 def export_dataset(dataset, output_path):
@@ -20,14 +21,14 @@ def export_dataset(dataset, output_path):
         export_dir=output_path,
         dataset_type=fo.types.CSVDataset,
         export_media = False,
-        fields=["polyp_ref_index", "image_id", "classifications.label", "classifications.confidence", "original_image"],
+        fields=["polyp_ref_index", "image_id", "classifications.classifications.label", "classifications.classifications.confidence", "original_image"],
     )
 
-def fiftyone_inference(config, volume, model_path, debug = True, biigle_export = False):
+def fiftyone_inference(config, volume, model_path, model = "resnet", debug = True, biigle_export = False):
     
     if type(volume) == list:  # Recursive call
         return [
-            fiftyone_inference(config, v, model_path, debug=debug)
+            fiftyone_inference(config, v, model_path, debug=debug, model = model)
             for v in volume
         ]
 
@@ -105,9 +106,15 @@ def fiftyone_inference(config, volume, model_path, debug = True, biigle_export =
 
     iu.crop_all_images(images_path, polyp_ref, h_matrixs, vign_path, dataset)
 
-    learner = load_learner(model_path, cpu=1)
-
-    fou.do_inference(learner, dataset)
+    if model == "resnet":
+        learner = load_learner(model_path, cpu=1)
+        fou.do_inference(learner, dataset)
+    if model == "yolo":
+        yolo_model = YOLO(model_path)
+        dataset.apply_model(yolo_model, label_field="classification")
+        for sample in dataset.iter_samples(progress=True):
+            sample["classifications"] = fo.Classifications(classifications=[sample["classification"]])
+            sample.save()
 
     inference_path = os.path.join(output_path, 'predictions')
     None if os.path.exists(inference_path) else os.makedirs(inference_path)
